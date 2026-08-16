@@ -1,5 +1,5 @@
 import '../../data/models/dashboard_stats_model.dart';
 
 abstract class DashboardRepository {
-  Future<DashboardStatsModel> getDashboardStats();
+  Future<DashboardStatsModel> getDashboardStats({String? segmentId});
 }

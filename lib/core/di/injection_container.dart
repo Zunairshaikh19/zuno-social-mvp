@@ -69,6 +69,7 @@ Future<void> init() async {
   sl.registerFactory(() => AiStudioBloc(
         aiRemoteDataSource: sl(),
         queueRepository: sl(),
+        segmentsRepository: sl(),
       ));
   sl.registerFactory(() => SubscriptionBloc(subscriptionRepository: sl()));
   sl.registerFactory(() => ReferralBloc(referralRepository: sl()));

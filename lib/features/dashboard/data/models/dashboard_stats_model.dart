@@ -1,6 +1,7 @@
 import 'package:equatable/equatable.dart';
 
 class DashboardStatsModel extends Equatable {
+  final String? activeSegmentId;
   final String activeSegmentName;
   final DateTime? nextScheduledPost;
   final int postsUsed;
@@ -9,6 +10,7 @@ class DashboardStatsModel extends Equatable {
   final String planType;
 
   const DashboardStatsModel({
+    this.activeSegmentId,
     required this.activeSegmentName,
     this.nextScheduledPost,
     required this.postsUsed,
@@ -19,6 +21,7 @@ class DashboardStatsModel extends Equatable {
 
   factory DashboardStatsModel.fromJson(Map<String, dynamic> json) {
     return DashboardStatsModel(
+      activeSegmentId: json['activeSegmentId'] as String?,
       activeSegmentName: json['activeSegmentName'] as String,
       nextScheduledPost: json['nextScheduledPost'] != null 
           ? DateTime.parse(json['nextScheduledPost'] as String) 
@@ -32,6 +35,7 @@ class DashboardStatsModel extends Equatable {
 
   Map<String, dynamic> toJson() {
     return {
+      'activeSegmentId': activeSegmentId,
       'activeSegmentName': activeSegmentName,
       'nextScheduledPost': nextScheduledPost?.toIso8601String(),
       'postsUsed': postsUsed,
@@ -43,6 +47,7 @@ class DashboardStatsModel extends Equatable {
 
   factory DashboardStatsModel.mock() {
     return DashboardStatsModel(
+      activeSegmentId: 'seg_1',
       activeSegmentName: 'AI Influencer Alpha',
       nextScheduledPost: DateTime.now().add(const Duration(hours: 4, minutes: 20)),
       postsUsed: 18,
@@ -56,6 +61,7 @@ class DashboardStatsModel extends Equatable {
 
   @override
   List<Object?> get props => [
+        activeSegmentId,
         activeSegmentName,
         nextScheduledPost,
         postsUsed,

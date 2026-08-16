@@ -33,11 +33,28 @@ class DashboardLoading extends DashboardState {}
 class DashboardLoaded extends DashboardState {
   final DashboardStatsModel stats;
   final List<SegmentModel> segments;
+  final String? activeSegmentId;
   
-  const DashboardLoaded({required this.stats, required this.segments});
+  const DashboardLoaded({
+    required this.stats, 
+    required this.segments,
+    this.activeSegmentId,
+  });
   
   @override
-  List<Object?> get props => [stats, segments];
+  List<Object?> get props => [stats, segments, activeSegmentId];
+
+  DashboardLoaded copyWith({
+    DashboardStatsModel? stats,
+    List<SegmentModel>? segments,
+    String? activeSegmentId,
+  }) {
+    return DashboardLoaded(
+      stats: stats ?? this.stats,
+      segments: segments ?? this.segments,
+      activeSegmentId: activeSegmentId ?? this.activeSegmentId,
+    );
+  }
 }
 class DashboardError extends DashboardState {
   final String message;
@@ -56,11 +73,16 @@ class DashboardBloc extends Bloc<DashboardEvent, DashboardState> {
     required this.segmentsRepository,
   }) : super(DashboardInitial()) {
     on<LoadDashboardData>((event, emit) async {
+      final currentActiveId = state is DashboardLoaded ? (state as DashboardLoaded).activeSegmentId : null;
       emit(DashboardLoading());
       try {
-        final stats = await dashboardRepository.getDashboardStats();
+        final stats = await dashboardRepository.getDashboardStats(segmentId: currentActiveId);
         final segments = await segmentsRepository.getSegments();
-        emit(DashboardLoaded(stats: stats, segments: segments));
+        emit(DashboardLoaded(
+          stats: stats, 
+          segments: segments,
+          activeSegmentId: stats.activeSegmentId ?? currentActiveId ?? (segments.isNotEmpty ? segments.first.id : null),
+        ));
       } catch (e) {
         emit(DashboardError(e.toString()));
       }
@@ -71,10 +93,12 @@ class DashboardBloc extends Bloc<DashboardEvent, DashboardState> {
         final currentState = state as DashboardLoaded;
         emit(DashboardLoading());
         try {
-          // In a real app, you might notify the backend about the active segment change
-          // For now, we just reload stats
-          final stats = await dashboardRepository.getDashboardStats();
-          emit(DashboardLoaded(stats: stats, segments: currentState.segments));
+          final stats = await dashboardRepository.getDashboardStats(segmentId: event.segmentId);
+          emit(DashboardLoaded(
+            stats: stats, 
+            segments: currentState.segments,
+            activeSegmentId: event.segmentId,
+          ));
         } catch (e) {
           emit(DashboardError(e.toString()));
         }

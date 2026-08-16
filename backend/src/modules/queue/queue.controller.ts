@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Param, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Body, Param, UseGuards, Patch, Delete } from '@nestjs/common';
 import { QueueService } from './queue.service';
 import { SchedulePostDto } from './dto/schedule-post.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';

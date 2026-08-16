@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:zunosocial/features/dashboard/presentation/bloc/dashboard_bloc.dart';
 import 'package:zunosocial/core/theme/app_theme.dart';
 import 'package:zunosocial/core/widgets/app_widgets.dart';
 
@@ -234,7 +236,13 @@ class QuickActionButtons extends StatelessWidget {
               icon: Icons.person_add_rounded,
               label: l10n.translate('new_persona'),
               color: Colors.orange,
-              onTap: () => Navigator.of(context).pushNamed('/segments'),
+              onTap: () async {
+                final dashboardBloc = context.read<DashboardBloc>();
+                final result = await Navigator.of(context).pushNamed('/segments');
+                if (result == true) {
+                  dashboardBloc.add(LoadDashboardData());
+                }
+              },
             ),
             _ActionItem(
               icon: Icons.card_giftcard,

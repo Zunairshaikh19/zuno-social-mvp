@@ -4,6 +4,8 @@ import 'package:zunosocial/features/ai_studio/data/models/ai_generated_post_mode
 import 'package:zunosocial/features/ai_studio/data/datasources/ai_remote_data_source.dart';
 import 'package:zunosocial/features/queue/domain/repositories/queue_repository.dart';
 import 'package:zunosocial/features/queue/data/models/post_item_model.dart';
+import 'package:zunosocial/features/segments/domain/repositories/segments_repository.dart';
+import 'package:zunosocial/features/segments/data/models/segment_model.dart';
 
 // --- Events ---
 abstract class AiStudioEvent extends Equatable {
@@ -11,6 +13,8 @@ abstract class AiStudioEvent extends Equatable {
   @override
   List<Object?> get props => [];
 }
+
+class LoadAiStudioData extends AiStudioEvent {}
 
 class GenerateInstantPostRequested extends AiStudioEvent {
   final String segmentId;
@@ -57,7 +61,13 @@ abstract class AiStudioState extends Equatable {
   List<Object?> get props => [];
 }
 
-class AiStudioInitial extends AiStudioState {}
+class AiStudioInitial extends AiStudioState {
+  final List<SegmentModel> segments;
+  const AiStudioInitial({this.segments = const []});
+  @override
+  List<Object?> get props => [segments];
+}
+
 class AiGeneratingText extends AiStudioState {}
 class AiGeneratingImage extends AiStudioState {}
 class AiGenerationSuccess extends AiStudioState {
@@ -83,21 +93,34 @@ class AiActionSuccess extends AiStudioState {
 class AiStudioBloc extends Bloc<AiStudioEvent, AiStudioState> {
   final AiRemoteDataSource aiRemoteDataSource;
   final QueueRepository queueRepository;
+  final SegmentsRepository segmentsRepository;
 
   AiStudioBloc({
     required this.aiRemoteDataSource,
     required this.queueRepository,
-  }) : super(AiStudioInitial()) {
+    required this.segmentsRepository,
+  }) : super(const AiStudioInitial()) {
+    on<LoadAiStudioData>(_onLoadAiStudioData);
     on<GenerateInstantPostRequested>(_onGenerateInstantPostRequested);
     on<RegenerateCaptionOnly>(_onRegenerateCaptionOnly);
     on<RegenerateImageOnly>(_onRegenerateImageOnly);
     on<ScheduleGeneratedPost>(_onScheduleGeneratedPost);
   }
 
+  Future<void> _onLoadAiStudioData(LoadAiStudioData event, Emitter<AiStudioState> emit) async {
+    try {
+      final segments = await segmentsRepository.getSegments();
+      emit(AiStudioInitial(segments: segments));
+    } catch (e) {
+      emit(AiGenerationFailure(e.toString()));
+    }
+  }
+
   Future<void> _onGenerateInstantPostRequested(
     GenerateInstantPostRequested event,
     Emitter<AiStudioState> emit,
   ) async {
+    final segments = state is AiStudioInitial ? (state as AiStudioInitial).segments : <SegmentModel>[];
     emit(AiGeneratingText());
     try {
       // Small delays to show UI transitions
@@ -113,6 +136,7 @@ class AiStudioBloc extends Bloc<AiStudioEvent, AiStudioState> {
       emit(AiGenerationSuccess(post.copyWith(segmentId: event.segmentId)));
     } catch (e) {
       emit(AiGenerationFailure(e.toString()));
+      emit(AiStudioInitial(segments: segments));
     }
   }
 

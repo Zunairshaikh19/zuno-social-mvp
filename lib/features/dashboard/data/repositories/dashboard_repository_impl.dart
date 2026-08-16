@@ -8,7 +8,7 @@ class DashboardRepositoryImpl implements DashboardRepository {
   DashboardRepositoryImpl({required this.remoteDataSource});
 
   @override
-  Future<DashboardStatsModel> getDashboardStats() {
-    return remoteDataSource.getDashboardStats();
+  Future<DashboardStatsModel> getDashboardStats({String? segmentId}) {
+    return remoteDataSource.getDashboardStats(segmentId: segmentId);
   }
 }

@@ -62,7 +62,6 @@ class ZunoSocialApp extends StatelessWidget {
                 '/login': (_) => const LoginScreen(),
                 '/register': (_) => const RegisterScreen(),
                 '/forgot-password': (_) => const ForgotPasswordScreen(),
-                '/dashboard': (_) => const DashboardScreen(),
                 '/segments': (_) => const SegmentWizardScreen(),
                 '/ai-studio': (_) => const AiStudioScreen(),
                 '/subscription': (_) => const SubscriptionScreen(),

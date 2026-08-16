@@ -9,6 +9,7 @@ import 'package:zunosocial/core/theme/app_theme.dart';
 import 'package:zunosocial/core/widgets/app_widgets.dart';
 import 'package:zunosocial/features/ai_studio/presentation/bloc/ai_studio_bloc.dart';
 import 'package:zunosocial/features/ai_studio/data/models/ai_generated_post_model.dart';
+import 'package:zunosocial/features/segments/data/models/segment_model.dart';
 
 import 'package:zunosocial/core/l10n/app_localizations.dart';
 
@@ -23,6 +24,7 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
   final _promptController = TextEditingController();
   bool _usePersona = true;
   String _selectedAspectRatio = '1:1';
+  String? _selectedSegmentId;
 
   final List<String> _inspirationTags = [
     'Daily Outfit',
@@ -32,11 +34,18 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
     'Product Launch',
   ];
 
-  void _onGenerate() {
+  void _onGenerate(BuildContext context) {
     if (_promptController.text.isNotEmpty) {
+      if (_selectedSegmentId == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Please select a persona first.')),
+        );
+        return;
+      }
+      
       context.read<AiStudioBloc>().add(
             GenerateInstantPostRequested(
-              segmentId: 'active_seg',
+              segmentId: _selectedSegmentId!,
               promptTopic: _promptController.text,
               usePersonaReference: _usePersona,
             ),
@@ -48,37 +57,46 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     return BlocProvider(
-      create: (context) => sl<AiStudioBloc>(),
-      child: Scaffold(
-        appBar: AppBar(title: Text(l10n.translate('ai_studio'))),
-        body: BlocConsumer<AiStudioBloc, AiStudioState>(
-          listener: (context, state) {
-            if (state is AiActionSuccess) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text(state.message), backgroundColor: AppTheme.successEmerald),
-              );
-            }
-          },
-          builder: (context, state) {
-            return SingleChildScrollView(
-              padding: EdgeInsets.all(24.w),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  if (state is AiStudioInitial) _buildComposer(context),
-                  if (state is AiGeneratingText || state is AiGeneratingImage) _buildGeneratingState(state),
-                  if (state is AiGenerationSuccess) _buildReviewStudio(context, state.post),
-                  if (state is AiGenerationFailure) _buildErrorState(state.message),
-                ],
-              ),
-            );
-          },
-        ),
+      create: (context) => sl<AiStudioBloc>()..add(LoadAiStudioData()),
+      child: Builder(
+        builder: (context) {
+          return Scaffold(
+            appBar: AppBar(title: Text(l10n.translate('ai_studio'))),
+            body: BlocConsumer<AiStudioBloc, AiStudioState>(
+              listener: (context, state) {
+                if (state is AiActionSuccess) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text(state.message), backgroundColor: AppTheme.successEmerald),
+                  );
+                }
+                if (state is AiStudioInitial && state.segments.isNotEmpty && _selectedSegmentId == null) {
+                  setState(() {
+                    _selectedSegmentId = state.segments.first.id;
+                  });
+                }
+              },
+              builder: (context, state) {
+                return SingleChildScrollView(
+                  padding: EdgeInsets.all(24.w),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      if (state is AiStudioInitial) _buildComposer(context, state.segments),
+                      if (state is AiGeneratingText || state is AiGeneratingImage) _buildGeneratingState(state),
+                      if (state is AiGenerationSuccess) _buildReviewStudio(context, state.post),
+                      if (state is AiGenerationFailure) _buildErrorState(state.message),
+                    ],
+                  ),
+                );
+              },
+            ),
+          );
+        }
       ),
     );
   }
 
-  Widget _buildComposer(BuildContext context) {
+  Widget _buildComposer(BuildContext context, List<SegmentModel> segments) {
     final l10n = AppLocalizations.of(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -117,6 +135,31 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
           value: _usePersona,
           onChanged: (v) => setState(() => _usePersona = v),
         ),
+        if (_usePersona) ...[
+          SizedBox(height: 16.h),
+          Text('Select Persona', style: TextStyle(fontSize: 14.sp, fontWeight: FontWeight.bold, color: Colors.grey)),
+          SizedBox(height: 8.h),
+          Container(
+            padding: EdgeInsets.symmetric(horizontal: 16.w),
+            decoration: BoxDecoration(
+              color: Colors.grey.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(16.r),
+              border: Border.all(color: Colors.grey.withOpacity(0.2)),
+            ),
+            child: DropdownButtonHideUnderline(
+              child: DropdownButton<String>(
+                value: _selectedSegmentId,
+                isExpanded: true,
+                hint: const Text('Choose a persona'),
+                items: segments.map((s) => DropdownMenuItem(
+                  value: s.id,
+                  child: Text(s.name, style: const TextStyle(fontWeight: FontWeight.w600)),
+                )).toList(),
+                onChanged: (v) => setState(() => _selectedSegmentId = v),
+              ),
+            ),
+          ),
+        ],
         SizedBox(height: 24.h),
         Text(l10n.translate('aspect_ratio'), style: const TextStyle(fontWeight: FontWeight.bold)),
         SizedBox(height: 12.h),
@@ -142,12 +185,13 @@ class _AiStudioScreenState extends State<AiStudioScreen> {
         SizedBox(height: 48.h),
         AppButton(
           label: l10n.translate('generate_content'),
-          onPressed: _promptController.text.isEmpty ? () {} : _onGenerate,
+          onPressed: _promptController.text.isEmpty ? null : () => _onGenerate(context),
           isLoading: false,
         ),
       ],
     );
   }
+
 
   Widget _buildGeneratingState(AiStudioState state) {
     final step = state is AiGeneratingText ? 1 : 2;

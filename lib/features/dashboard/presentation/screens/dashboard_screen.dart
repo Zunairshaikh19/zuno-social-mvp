@@ -15,37 +15,34 @@ class DashboardScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    return BlocProvider(
-      create: (context) => sl<DashboardBloc>()..add(LoadDashboardData()),
-      child: Scaffold(
-        appBar: AppBar(
-          title: Text(
-            l10n.translate('dashboard'),
-            style: TextStyle(fontWeight: FontWeight.w900, fontSize: 24.sp),
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(
+          l10n.translate('dashboard'),
+          style: TextStyle(fontWeight: FontWeight.w900, fontSize: 24.sp),
+        ),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.notifications_none_rounded),
+            onPressed: () => Navigator.of(context).pushNamed('/notifications'),
           ),
-          actions: [
-            IconButton(
-              icon: const Icon(Icons.notifications_none_rounded),
-              onPressed: () => Navigator.of(context).pushNamed('/notifications'),
-            ),
-            IconButton(
-              icon: const Icon(Icons.settings_outlined),
-              onPressed: () => Navigator.of(context).pushNamed('/settings'),
-            ),
-          ],
-        ),
-        body: BlocBuilder<DashboardBloc, DashboardState>(
-          builder: (context, state) {
-            if (state is DashboardLoading) {
-              return _buildLoadingState();
-            } else if (state is DashboardLoaded) {
-              return _buildDashboard(context, state);
-            } else if (state is DashboardError) {
-              return Center(child: Text(state.message));
-            }
-            return const SizedBox.shrink();
-          },
-        ),
+          IconButton(
+            icon: const Icon(Icons.settings_outlined),
+            onPressed: () => Navigator.of(context).pushNamed('/settings'),
+          ),
+        ],
+      ),
+      body: BlocBuilder<DashboardBloc, DashboardState>(
+        builder: (context, state) {
+          if (state is DashboardLoading) {
+            return _buildLoadingState();
+          } else if (state is DashboardLoaded) {
+            return _buildDashboard(context, state);
+          } else if (state is DashboardError) {
+            return Center(child: Text(state.message));
+          }
+          return const SizedBox.shrink();
+        },
       ),
     );
   }
@@ -141,14 +138,16 @@ class DashboardScreen extends StatelessWidget {
 
   void _showSegmentSwitcher(BuildContext context, DashboardLoaded state) {
     final l10n = AppLocalizations.of(context);
+    final dashboardBloc = context.read<DashboardBloc>();
+    
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
-      builder: (context) {
+      builder: (modalContext) {
         return Container(
           padding: EdgeInsets.all(24.w),
           decoration: BoxDecoration(
-            color: Theme.of(context).scaffoldBackgroundColor,
+            color: Theme.of(modalContext).scaffoldBackgroundColor,
             borderRadius: BorderRadius.vertical(top: Radius.circular(32.r)),
           ),
           child: Column(
@@ -176,10 +175,10 @@ class DashboardScreen extends StatelessWidget {
                 ),
               ...state.segments.map((segment) => _SegmentSwitchTile(
                 name: segment.name,
-                isActive: segment.name == state.stats.activeSegmentName,
+                isActive: segment.id == state.stats.activeSegmentId,
                 onTap: () {
-                  context.read<DashboardBloc>().add(SwitchActiveSegment(segment.id ?? ''));
-                  Navigator.pop(context);
+                  dashboardBloc.add(SwitchActiveSegment(segment.id ?? ''));
+                  Navigator.pop(modalContext);
                 },
               )),
               SizedBox(height: 16.h),
@@ -194,9 +193,12 @@ class DashboardScreen extends StatelessWidget {
                   child: const Icon(Icons.add_rounded),
                 ),
                 title: Text(l10n.translate('new_persona'), style: const TextStyle(fontWeight: FontWeight.w600)),
-                onTap: () {
-                  Navigator.pop(context);
-                  Navigator.pushNamed(context, '/segments');
+                onTap: () async {
+                  Navigator.pop(modalContext);
+                  final result = await Navigator.pushNamed(context, '/segments');
+                  if (result == true) {
+                    dashboardBloc.add(LoadDashboardData());
+                  }
                 },
               ),
               SizedBox(height: 24.h),

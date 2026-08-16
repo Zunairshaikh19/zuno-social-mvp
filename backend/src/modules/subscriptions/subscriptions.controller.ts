@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Body, Query, UseGuards } from '@nestjs/common';
 import { SubscriptionsService } from './subscriptions.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { GetUser } from '../auth/decorators/get-user.decorator';
@@ -25,7 +25,7 @@ export class SubscriptionsController {
   }
 
   @Get('stats')
-  getStats(@GetUser() user: UserEntity) {
-    return this.subscriptionsService.getStats(user.id);
+  getStats(@GetUser() user: UserEntity, @Query('segmentId') segmentId?: string) {
+    return this.subscriptionsService.getStats(user.id, segmentId);
   }
 }

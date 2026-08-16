@@ -19,7 +19,7 @@ class SegmentWizardScreen extends StatelessWidget {
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(content: Text('Segment created successfully!')),
             );
-            Navigator.of(context).pop();
+            Navigator.of(context).pop(true);
           }
         },
         builder: (context, state) {

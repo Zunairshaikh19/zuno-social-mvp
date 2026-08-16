@@ -73,7 +73,7 @@ export class SubscriptionsService implements OnModuleInit {
     return { message: 'Subscription updated' };
   }
 
-  async getStats(userId: string) {
+  async getStats(userId: string, segmentId?: string) {
     const user = await this.userRepository.findOne({
       where: { id: userId },
       relations: ['segments', 'segments.posts']
@@ -83,7 +83,12 @@ export class SubscriptionsService implements OnModuleInit {
       throw new Error('User not found');
     }
 
-    const activeSegment = user.segments && user.segments.length > 0 ? user.segments[0] : null;
+    let activeSegment = user.segments && user.segments.length > 0 ? user.segments[0] : null;
+
+    if (segmentId) {
+      activeSegment = user.segments.find(s => s.id === segmentId) || activeSegment;
+    }
+
     const postsUsed = activeSegment?.posts ? activeSegment.posts.length : 0;
 
     // Get plan details for quota
@@ -98,6 +103,7 @@ export class SubscriptionsService implements OnModuleInit {
       : null;
 
     return {
+      activeSegmentId: activeSegment?.id || null,
       activeSegmentName: activeSegment?.name || 'No Active Persona',
       nextScheduledPost: nextPost?.scheduledFor ? nextPost.scheduledFor.toISOString() : null,
       postsUsed: postsUsed,
